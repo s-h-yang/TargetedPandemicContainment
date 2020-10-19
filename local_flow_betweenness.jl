@@ -1,3 +1,5 @@
+# Comuputes the local flow betweenness.
+
 using SparseArrays
 using Random
 using Printf
