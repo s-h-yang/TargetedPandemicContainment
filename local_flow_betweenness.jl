@@ -3,8 +3,8 @@ using Random
 using Printf
 
 function local_flow_betweenness(
-			nodes::Vector{Int}, edges::Vector{Tuple{Int,Int}};
-			locality_index::Real=0.1, timelimit::Real=86400, outdir=nothing)
+		nodes::Vector{Int}, edges::Vector{Tuple{Int,Int}};
+		locality_index::Real=0.1, timelimit::Real=86400, outdir=nothing)
 
 	ll = get_ll(nodes, edges)
 
@@ -16,34 +16,35 @@ function local_flow_betweenness(
 end
 
 function local_flow_betweenness(
-			ll::Vector{Vector{Int}}; edges=nothing,
-			locality_index::Real=0.1, timelimit::Real=86400, outdir=nothing)
+		ll::Vector{Vector{Int}}; edges=nothing,
+		locality_index::Real=0.1, timelimit::Real=86400, outdir=nothing)
 
     n = length(ll) # number of nodes
     degree = Int[length(ll[i]) for i in 1:n] # degree vector
     vol = sum(degree)
-	if isnothing(edges)
-		m = Int(vol/2)
-		edges = get_edges(ll, n, m)
-	end
+    if isnothing(edges)
+	m = Int(vol/2)
+	edges = get_edges(ll, n, m)
+    end
     seed_mass = Float64(locality_index*vol)
     height = Vector{Float64}(undef, n)
     mass = Vector{Float64}(undef, n)
     score = Dict{Tuple{Int,Int},Float64}(e => 0.0 for e in edges)
 
     t1 = time_ns()
-	runtime = -1.0
+
+    runtime = -1.0
 
     for seed = 1:n
 
-		if degree[seed] == 0
+	if degree[seed] == 0
             continue
         end
-		if seed % 100 == 0
-			@printf("Processed %d out of %d nodes. Time elapsed: %.3f seconds\n",
+	if seed % 100 == 0
+	    @printf("Processed %d out of %d nodes. Time elapsed: %.3f seconds\n",
 				seed, n, runtime)
-		end
-		l2diffusion!(ll, degree, seed, seed_mass, height, mass)
+	end
+	l2diffusion!(ll, degree, seed, seed_mass, height, mass)
         nzind = findall(!iszero, mass)
         update_score!(ll, nzind, height, score)
 
@@ -57,24 +58,24 @@ function local_flow_betweenness(
     @printf("Computation finished. Total running time: %.3f seconds\n", runtime)
 
     norm = n*seed_mass
-	for e in edges
-		score[e] /= norm
-	end
+    for e in edges
+	score[e] /= norm
+    end
 
-	if !isnothing(outdir)
-    	open(outdir, "w") do f
-        	for e in edges
-            	@printf(f, "%.10f\n", score[e])
-        	end
-    	end
+    if !isnothing(outdir)
+	open(outdir, "w") do f
+	    for e in edges
+		@printf(f, "%.10f\n", score[e])
+	    end
 	end
+    end
 
     return score
 end
 
 function l2diffusion!(ll::Vector{Vector{Int}}, degree::Vector{Int}, seed::Int,
-			seed_mass::Float64, height::Vector{Float64}, mass::Vector{Float64};
-			itrs::Int=1000, tol::Float64=1.0e-2)
+		seed_mass::Float64, height::Vector{Float64}, mass::Vector{Float64};
+		itrs::Int=1000, tol::Float64=1.0e-2)
 
     fill!(height, 0.0)
     fill!(mass, 0.0)
@@ -125,12 +126,12 @@ function get_edges(ll, n::Int, m::Int)
 end
 
 function get_ll(nodes::Vector{Int}, edges::Vector{Tuple{Int,Int}})
-	if minimum(nodes) != 1
-		error("Node index must start from 1.")
-	end
-	if maximum(nodes) > length(nodes)
-		@warn "Input graph has a node index that exceeds total number of nodes."
-	end
+    if minimum(nodes) != 1
+	error("Node index must start from 1.")
+    end
+    if maximum(nodes) > length(nodes)
+	@warn "Input graph has a node index that exceeds total number of nodes."
+    end
     ll = [Int[] for _ in nodes]
     for (u,v) in edges
         push!(ll[u], v)
