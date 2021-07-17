@@ -3,11 +3,11 @@ using SparseArrays
 using LinearAlgebra
 
 function run_network_seir(A::SparseMatrixCSC{Float64,Int},
-			ini_cond::Array{Float64,2}, t_span::Tuple{Float64,Float64};
-			R_0::Float64=2.5, sigma::Float64=0.4, gamma::Float64=0.2,
-			phi::Float64=1.0, beta::Float64=0.0)
-	if beta == 0.0
-		beta = gamma*R_0*phi
+		ini_cond::Array{Float64,2}, t_span::Tuple{Float64,Float64};
+		R_0::Float64=2.5, sigma::Float64=0.4, gamma::Float64=0.2,
+		phi::Float64=1.0, beta::Float64=0.0)
+    if beta == 0.0
+	beta = gamma*R_0*phi
     end
     N = Vector{Float64}(undef, A.n)
     IN = Vector{Float64}(undef, A.n)
