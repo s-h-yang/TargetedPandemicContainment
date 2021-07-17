@@ -1,46 +1,54 @@
-# Comuputes the local flow betweenness.
-
 using SparseArrays
 using Random
 using Printf
 
-function local_flow_betweenness(nodes::Vector{Int}, edges::Vector{Tuple{Int,Int}};
-            locality_index::Real=0.1, timelimit::Real=86400, outdir=nothing)
-    ll = get_ll(nodes, edges)
-    return local_flow_betweenness(ll, locality_index=locality_index,
-        outdir=outdir, timelimit=timelimit, edges=edges)
+function local_flow_betweenness(
+			nodes::Vector{Int}, edges::Vector{Tuple{Int,Int}};
+			locality_index::Real=0.1, timelimit::Real=86400, outdir=nothing)
+
+	ll = get_ll(nodes, edges)
+
+	# `ll` is a List of Lists representation of a network
+	# `ll[i]` contains neighbors of node i, for i = 1, 2, ..., n
+
+	return local_flow_betweenness(ll, locality_index=locality_index,
+			outdir=outdir, timelimit=timelimit, edges=edges)
 end
 
-function local_flow_betweenness(ll::Vector{Vector{Int}};
-            locality_index::Real=0.1, timelimit::Real=86400, outdir=nothing,
-            edges=nothing)
+function local_flow_betweenness(
+			ll::Vector{Vector{Int}}; edges=nothing,
+			locality_index::Real=0.1, timelimit::Real=86400, outdir=nothing)
 
-    n = length(ll)
-    degree = Int[length(ll[i]) for i in 1:n]
+    n = length(ll) # number of nodes
+    degree = Int[length(ll[i]) for i in 1:n] # degree vector
     vol = sum(degree)
-    if isnothing(edges)
-        m = Int(vol/2)
-        edges = get_edges(ll, n, m)
-    end
+	if isnothing(edges)
+		m = Int(vol/2)
+		edges = get_edges(ll, n, m)
+	end
     seed_mass = Float64(locality_index*vol)
     height = Vector{Float64}(undef, n)
     mass = Vector{Float64}(undef, n)
     score = Dict{Tuple{Int,Int},Float64}(e => 0.0 for e in edges)
 
     t1 = time_ns()
+	runtime = -1.0
+
     for seed = 1:n
-        if degree[seed] == 0
+
+		if degree[seed] == 0
             continue
         end
-        if seed % 100 == 0
-            @printf("Processed %d out of %d nodes. Time elapsed: %.3f seconds\n",
-                seed, n, runtime)
-        end
-        l2diffusion!(ll, degree, seed, seed_mass, height, mass)
+		if seed % 100 == 0
+			@printf("Processed %d out of %d nodes. Time elapsed: %.3f seconds\n",
+				seed, n, runtime)
+		end
+		l2diffusion!(ll, degree, seed, seed_mass, height, mass)
         nzind = findall(!iszero, mass)
         update_score!(ll, nzind, height, score)
+
         t2 = time_ns()
-        global runtime = (t2 - t1)/1e9
+        runtime = (t2 - t1)/1e9
         if runtime > timelimit
             break
         end
@@ -50,23 +58,23 @@ function local_flow_betweenness(ll::Vector{Vector{Int}};
 
     norm = n*seed_mass
 	for e in edges
-            score[e] /= norm
+		score[e] /= norm
 	end
 
 	if !isnothing(outdir)
     	open(outdir, "w") do f
-            for e in edges
-                @printf(f, "%.10f\n", score[e])
-            end
+        	for e in edges
+            	@printf(f, "%.10f\n", score[e])
+        	end
     	end
-    end
+	end
 
-    return score, runtime
+    return score
 end
 
 function l2diffusion!(ll::Vector{Vector{Int}}, degree::Vector{Int}, seed::Int,
-            seed_mass::Float64, height::Vector{Float64}, mass::Vector{Float64};
-            itrs::Int=1000, tol::Float64=1.0e-2)
+			seed_mass::Float64, height::Vector{Float64}, mass::Vector{Float64};
+			itrs::Int=1000, tol::Float64=1.0e-2)
 
     fill!(height, 0.0)
     fill!(mass, 0.0)
@@ -89,7 +97,6 @@ function l2diffusion!(ll::Vector{Vector{Int}}, degree::Vector{Int}, seed::Int,
             end
         end
     end
-    return nothing
 end
 
 function update_score!(ll, nzind, height, score)
@@ -118,12 +125,12 @@ function get_edges(ll, n::Int, m::Int)
 end
 
 function get_ll(nodes::Vector{Int}, edges::Vector{Tuple{Int,Int}})
-    if minimum(nodes) != 1
-        error("Node index must start from 1.")
-    end
-    if maximum(nodes) > length(nodes)
-        @warn "Input graph has a node index that exceeds total number of nodes."
-    end
+	if minimum(nodes) != 1
+		error("Node index must start from 1.")
+	end
+	if maximum(nodes) > length(nodes)
+		@warn "Input graph has a node index that exceeds total number of nodes."
+	end
     ll = [Int[] for _ in nodes]
     for (u,v) in edges
         push!(ll[u], v)
