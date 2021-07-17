@@ -32,7 +32,6 @@ function local_flow_betweenness(
     score = Dict{Tuple{Int,Int},Float64}(e => 0.0 for e in edges)
 
     t1 = time_ns()
-
     runtime = -1.0
 
     for seed = 1:n
